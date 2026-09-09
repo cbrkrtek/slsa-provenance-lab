@@ -1,0 +1,255 @@
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "predicateType": "https://slsa.dev/provenance/v0.2",
+  "subject": [
+    {
+      "name": "ghcr.io/cbrkrtek/slsa-lab-app",
+      "digest": {
+        "sha256": "1c70c20db0f36b09dd0954a096050631fe3c41fa3f33e27443b4469a75a478da"
+      }
+    }
+  ],
+  "predicate": {
+    "builder": {
+      "id": "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v2.0.0"
+    },
+    "buildType": "https://github.com/slsa-framework/slsa-github-generator/container@v1",
+    "invocation": {
+      "configSource": {
+        "uri": "git+https://github.com/attacker/evil-repo",
+        "digest": {
+          "sha1": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+        },
+        "entryPoint": ".github/workflows/build-and-provenance.yml"
+      },
+      "parameters": {},
+      "environment": {
+        "github_actor": "cbrkrtek",
+        "github_actor_id": "253804507",
+        "github_base_ref": "",
+        "github_event_name": "push",
+        "github_event_payload": {
+          "after": "c92ce306870dde70e216a961c38c4112a2bfc23e",
+          "base_ref": null,
+          "before": "1ec3b2403f4075b86042f732cc2c128ed25b11eb",
+          "commits": [
+            {
+              "author": {
+                "email": "253804507+cbrkrtek@users.noreply.github.com",
+                "name": "cbrkrtek",
+                "username": "cbrkrtek"
+              },
+              "committer": {
+                "email": "253804507+cbrkrtek@users.noreply.github.com",
+                "name": "cbrkrtek",
+                "username": "cbrkrtek"
+              },
+              "distinct": true,
+              "id": "c92ce306870dde70e216a961c38c4112a2bfc23e",
+              "message": "added a temporary file to add a screenshot",
+              "timestamp": "2026-09-08T07:31:13+03:00",
+              "tree_id": "9636ea1e77346c808116a19e1943a523a6f102f9",
+              "url": "https://github.com/cbrkrtek/slsa-provenance-lab/commit/c92ce306870dde70e216a961c38c4112a2bfc23e"
+            }
+          ],
+          "compare": "https://github.com/cbrkrtek/slsa-provenance-lab/compare/1ec3b2403f40...c92ce306870d",
+          "created": false,
+          "deleted": false,
+          "forced": false,
+          "head_commit": {
+            "author": {
+              "email": "253804507+cbrkrtek@users.noreply.github.com",
+              "name": "cbrkrtek",
+              "username": "cbrkrtek"
+            },
+            "committer": {
+              "email": "253804507+cbrkrtek@users.noreply.github.com",
+              "name": "cbrkrtek",
+              "username": "cbrkrtek"
+            },
+            "distinct": true,
+            "id": "c92ce306870dde70e216a961c38c4112a2bfc23e",
+            "message": "added a temporary file to add a screenshot",
+            "timestamp": "2026-09-08T07:31:13+03:00",
+            "tree_id": "9636ea1e77346c808116a19e1943a523a6f102f9",
+            "url": "https://github.com/cbrkrtek/slsa-provenance-lab/commit/c92ce306870dde70e216a961c38c4112a2bfc23e"
+          },
+          "pusher": {
+            "email": "253804507+cbrkrtek@users.noreply.github.com",
+            "name": "cbrkrtek"
+          },
+          "ref": "refs/heads/main",
+          "repository": {
+            "allow_forking": true,
+            "archive_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/{archive_format}{/ref}",
+            "archived": false,
+            "assignees_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/assignees{/user}",
+            "blobs_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/git/blobs{/sha}",
+            "branches_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/branches{/branch}",
+            "clone_url": "https://github.com/cbrkrtek/slsa-provenance-lab.git",
+            "collaborators_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/collaborators{/collaborator}",
+            "comments_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/comments{/number}",
+            "commits_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/commits{/sha}",
+            "compare_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/compare/{base}...{head}",
+            "contents_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/contents/{+path}",
+            "contributors_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/contributors",
+            "created_at": 1788723653,
+            "default_branch": "main",
+            "deployments_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/deployments",
+            "description": "Cryptographic proof of how an artifact was built, not just that it wasn't tampered with. Hands-on lab comparing Cosign signing vs SLSA Level 3 provenance using GitHub Actions, slsa-github-generator and slsa-verifier — including a forged-provenance attack demo.",
+            "disabled": false,
+            "downloads_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/downloads",
+            "events_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/events",
+            "fork": false,
+            "forks": 0,
+            "forks_count": 0,
+            "forks_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/forks",
+            "full_name": "cbrkrtek/slsa-provenance-lab",
+            "git_commits_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/git/commits{/sha}",
+            "git_refs_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/git/refs{/sha}",
+            "git_tags_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/git/tags{/sha}",
+            "git_url": "git://github.com/cbrkrtek/slsa-provenance-lab.git",
+            "has_discussions": false,
+            "has_downloads": true,
+            "has_issues": true,
+            "has_pages": false,
+            "has_projects": true,
+            "has_pull_requests": true,
+            "has_wiki": true,
+            "homepage": "",
+            "hooks_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/hooks",
+            "html_url": "https://github.com/cbrkrtek/slsa-provenance-lab",
+            "id": 1359461729,
+            "is_template": false,
+            "issue_comment_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/issues/comments{/number}",
+            "issue_events_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/issues/events{/number}",
+            "issues_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/issues{/number}",
+            "keys_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/keys{/key_id}",
+            "labels_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/labels{/name}",
+            "language": "Python",
+            "languages_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/languages",
+            "license": null,
+            "master_branch": "main",
+            "merges_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/merges",
+            "milestones_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/milestones{/number}",
+            "mirror_url": null,
+            "name": "slsa-provenance-lab",
+            "node_id": "R_kgDOUQe9YQ",
+            "notifications_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/notifications{?since,all,participating}",
+            "open_issues": 0,
+            "open_issues_count": 0,
+            "owner": {
+              "avatar_url": "https://avatars.githubusercontent.com/u/253804507?v=4",
+              "email": "253804507+cbrkrtek@users.noreply.github.com",
+              "events_url": "https://api.github.com/users/cbrkrtek/events{/privacy}",
+              "followers_url": "https://api.github.com/users/cbrkrtek/followers",
+              "following_url": "https://api.github.com/users/cbrkrtek/following{/other_user}",
+              "gists_url": "https://api.github.com/users/cbrkrtek/gists{/gist_id}",
+              "gravatar_id": "",
+              "html_url": "https://github.com/cbrkrtek",
+              "id": 253804507,
+              "login": "cbrkrtek",
+              "name": "cbrkrtek",
+              "node_id": "U_kgDODyC_2w",
+              "organizations_url": "https://api.github.com/users/cbrkrtek/orgs",
+              "received_events_url": "https://api.github.com/users/cbrkrtek/received_events",
+              "repos_url": "https://api.github.com/users/cbrkrtek/repos",
+              "site_admin": false,
+              "starred_url": "https://api.github.com/users/cbrkrtek/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/cbrkrtek/subscriptions",
+              "type": "User",
+              "url": "https://api.github.com/users/cbrkrtek",
+              "user_view_type": "public"
+            },
+            "private": false,
+            "pull_request_creation_policy": "all",
+            "pulls_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/pulls{/number}",
+            "pushed_at": 1788841884,
+            "releases_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/releases{/id}",
+            "size": 1,
+            "ssh_url": "git@github.com:cbrkrtek/slsa-provenance-lab.git",
+            "stargazers": 0,
+            "stargazers_count": 0,
+            "stargazers_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/stargazers",
+            "statuses_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/statuses/{sha}",
+            "subscribers_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/subscribers",
+            "subscription_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/subscription",
+            "svn_url": "https://github.com/cbrkrtek/slsa-provenance-lab",
+            "tags_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/tags",
+            "teams_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/teams",
+            "topics": [
+              "ci-cd-security",
+              "container-security",
+              "cosign",
+              "devsecops",
+              "ghcr",
+              "github-actions",
+              "provenance",
+              "sbom",
+              "sigstore",
+              "slsa",
+              "slsa-verifier",
+              "software-supply-chain-security",
+              "supply-chain-security"
+            ],
+            "trees_url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab/git/trees{/sha}",
+            "updated_at": "2026-09-07T05:54:20Z",
+            "url": "https://api.github.com/repos/cbrkrtek/slsa-provenance-lab",
+            "visibility": "public",
+            "watchers": 0,
+            "watchers_count": 0,
+            "web_commit_signoff_required": false
+          },
+          "sender": {
+            "avatar_url": "https://avatars.githubusercontent.com/u/253804507?v=4",
+            "events_url": "https://api.github.com/users/cbrkrtek/events{/privacy}",
+            "followers_url": "https://api.github.com/users/cbrkrtek/followers",
+            "following_url": "https://api.github.com/users/cbrkrtek/following{/other_user}",
+            "gists_url": "https://api.github.com/users/cbrkrtek/gists{/gist_id}",
+            "gravatar_id": "",
+            "html_url": "https://github.com/cbrkrtek",
+            "id": 253804507,
+            "login": "cbrkrtek",
+            "node_id": "U_kgDODyC_2w",
+            "organizations_url": "https://api.github.com/users/cbrkrtek/orgs",
+            "received_events_url": "https://api.github.com/users/cbrkrtek/received_events",
+            "repos_url": "https://api.github.com/users/cbrkrtek/repos",
+            "site_admin": false,
+            "starred_url": "https://api.github.com/users/cbrkrtek/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/cbrkrtek/subscriptions",
+            "type": "User",
+            "url": "https://api.github.com/users/cbrkrtek",
+            "user_view_type": "public"
+          }
+        },
+        "github_head_ref": "",
+        "github_ref": "refs/heads/main",
+        "github_ref_type": "branch",
+        "github_repository_id": "1359461729",
+        "github_repository_owner": "cbrkrtek",
+        "github_repository_owner_id": "253804507",
+        "github_run_attempt": "1",
+        "github_run_id": "34187290434",
+        "github_run_number": "2",
+        "github_sha1": "c92ce306870dde70e216a961c38c4112a2bfc23e"
+      }
+    },
+    "metadata": {
+      "buildInvocationID": "34187290434-1",
+      "completeness": {
+        "parameters": true,
+        "environment": false,
+        "materials": false
+      },
+      "reproducible": false
+    },
+    "materials": [
+      {
+        "uri": "git+https://github.com/cbrkrtek/slsa-provenance-lab@refs/heads/main",
+        "digest": {
+          "sha1": "c92ce306870dde70e216a961c38c4112a2bfc23e"
+        }
+      }
+    ]
+  }
+}
