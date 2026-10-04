@@ -14,7 +14,7 @@ the registry, silently ignoring the local argument entirely (confirmed by feedin
 it both a forged JSON and `/dev/null` - identical `PASSED` result either way).
 Separately: because the provenance-generation step runs as an isolated job under
 its own GitHub OIDC identity, a compromised `build` job in the *same workflow
-file* still can't forge that identity. Full breakdown below.
+file* still can't forge that identity. Full breakdown below. 
  
 ## Stack
  
