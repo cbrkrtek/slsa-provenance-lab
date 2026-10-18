@@ -3,19 +3,31 @@
 Signing an image with Cosign tells you it wasn't modified after signing. It
 doesn't tell you what built it, from what source, or on what CI. This repo is a
 small, working setup that generates real SLSA Build Level 3 provenance
-(`slsa-github-generator`), verifies it (`slsa-verifier`), and tries to break it.
+(`slsa-github-generator`), verifies it (`slsa-verifier`), and probes where
+verification does and doesn't react to tampering.
+
+## TL;DR
  
-## TL;DR / Key Finding
- 
-**`slsa-verifier verify-image`'s `--provenance-path` flag doesn't do what it looks
-like it does.** It never substitutes a local file for verification - the command
-always fetches and checks whatever's cryptographically attached to the digest in
-the registry, silently ignoring the local argument entirely (confirmed by feeding
-it both a forged JSON and `/dev/null` - identical `PASSED` result either way).
-Separately: because the provenance-generation step runs as an isolated job under
-its own GitHub OIDC identity, a compromised `build` job in the *same workflow
-file* still can't forge that identity. Full breakdown below. 
- 
+- **What works as expected.** An image pushed to the registry outside the
+  pipeline is rejected by `slsa-verifier verify-image` (no matching
+  attestations). The legitimately built image passes.
+- **What I tried and what actually happened.** I tried to feed `verify-image` a
+  forged provenance file through `--provenance-path`. The result was `PASSED`,
+  and it was identical for `/dev/null`. In this setup the file's contents did
+  not change the verdict (E3, E4).
+- **What this does *not* show.** It is not a verifier bypass: the `PASSED`
+  verdict most likely refers to the genuine attestation stored in the registry,
+  not to my forged file. It also does not show that the signature check catches
+  tampered content, because that check was never exercised by my test.
+- **Cause: not established.** I have not read the verifier's source. See
+  [Hypotheses](#hypotheses-why-did-the-file-not-matter).
+  
+Scope of every statement below: an image built by
+`generator_container_slsa3.yml@v2.0.0`, the `verify-image` command, the image
+referenced by digest. I did not record the exact `slsa-verifier` version or the
+run date, so treat the results as a single observation, not as a statement about
+a specific release.
+
 ## Stack
  
 - basic FastAPI app
@@ -23,8 +35,9 @@ file* still can't forge that identity. Full breakdown below.
 - [`slsa-github-generator`](https://github.com/slsa-framework/slsa-github-generator) `generator_container_slsa3.yml@v2.0.0`
 - [`slsa-verifier`](https://github.com/slsa-framework/slsa-verifier) for verification
 - Cosign, for comparison
+
+
 ## Pipeline
- 
 ```yaml
 jobs:
   build:
@@ -65,17 +78,39 @@ jobs:
     secrets:
       registry-password: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+Both jobs live in one file, connected via `needs:`. That is fine: `provenance`
+is not code I wrote, it is a call to a pinned reusable workflow owned by the
+SLSA project. GitHub runs it as a separate job under its own OIDC identity (the
+token's `job_workflow_ref` points at `generator_container_slsa3.yml`, not at my
+workflow), so a compromised `build` job cannot read that job's token or forge
+its identity.
+
+**Limit of this guarantee.** The `provenance` job receives the image digest from
+the `build` job's outputs. A compromised `build` job can therefore still produce
+a malicious image; the provenance will then honestly describe *that* build.
+Isolation protects the integrity of the provenance, not the contents of the
+image.
+
+![](evidence/screenshots/01-pipeline-success.png)
+
+
+## Experiments
  
-Both jobs live in one file, connected via `needs:`. That's fine - `provenance`
-isn't code I wrote, it's a call to a pinned, third-party reusable workflow. GitHub
-runs it on its own runner, under its own OIDC identity (the token's
-`job_workflow_ref` points at `generator_container_slsa3.yml`, not at my workflow).
-A compromised `build` job can't reach into that job's process or forge its
-identity, regardless of which file the YAML lives in.
+| ID | What | Observed |
+|----|------|----------|
+| E1 | Verify the real image, correct `--source-uri` / `--source-branch` | PASS |
+| E2 | Verify an image pushed manually (no attestation) | FAIL: `no matching attestations` |
+| E3 | Real image + forged `--provenance-path` | PASS |
+| E4 | Real image + `--provenance-path /dev/null` | PASS |
  
-![build + provenance jobs, all green](evidence/screenshots/01-pipeline-success.png)
- 
-## Verifying the real image
+E2 is the only negative control I ran: it shows the verifier can return FAIL in
+this setup. It is a weak control for E3/E4, because it fails for a different
+reason (no attestation at all) than the one I was probing (a wrong claim inside
+an attestation). See [What I did not do](#what-i-did-not-do).
+
+
+### E1: verifying the real image
  
 ```bash
 IMAGE="ghcr.io/cbrkrtek/slsa-lab-app"
@@ -90,11 +125,12 @@ slsa-verifier verify-image "${IMAGE}@${DIGEST}" \
 Verified build using builder "https://github.com/slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@refs/tags/v2.0.0" at commit c92ce306870dde70e216a961c38c4112a2bfc23e
 PASSED: Verified SLSA provenance
 ```
- 
+
 ![PASSED on legit image](evidence/screenshots/03-verify-legit-pass.png)
- 
+
+
 For comparison, Cosign on the same image:
- 
+
 ```bash
 cosign verify-attestation \
   --type slsaprovenance \
@@ -102,53 +138,52 @@ cosign verify-attestation \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   "${IMAGE}@${DIGEST}"
 ```
- 
+
 ![cosign verify-attestation output](evidence/screenshots/04-cosign-verify-attestation.png)
- 
-Cosign can read the same builder cert info out of the transparency log - it just
-doesn't force you to check it against anything. `slsa-verifier` makes you declare
-`--source-uri`/`--source-branch` up front and fails if reality doesn't match.
- 
-## Attack 1: image pushed outside the pipeline
- 
-Simulating stolen registry credentials - push a build directly, skip CI entirely:
- 
+
+Note that `".*"` accepts any identity, so this command is deliberately lax.
+Cosign *can* enforce identity: with a strict `--certificate-identity` (or a
+tight regexp) it would reject certificates from other workflows. The difference
+I'm illustrating is about defaults and ergonomics. `slsa-verifier` expects you
+to say which source you trust; `cosign` leaves that decision to the flags you
+write.
+
+### E2: image pushed outside the pipeline
+Simulating stolen registry credentials: push a build directly, skip CI.
 ```bash
 docker build -t ghcr.io/cbrkrtek/slsa-lab-app:manual-push ./app
 docker push ghcr.io/cbrkrtek/slsa-lab-app:manual-push
-```
  
-```bash
 DIGEST_MANUAL=$(crane digest ghcr.io/cbrkrtek/slsa-lab-app:manual-push)
  
 slsa-verifier verify-image "ghcr.io/cbrkrtek/slsa-lab-app@${DIGEST_MANUAL}" \
   --source-uri github.com/cbrkrtek/slsa-provenance-lab \
   --source-branch main
 ```
- 
+
 ```
 FAILED: SLSA verification failed: no matching attestations:
 ```
- 
+
 ![no attestation, rejected](evidence/screenshots/05-verify-no-provenance-fail.png)
- 
-No provenance ever got attached to that digest, so there's nothing to check
-against. This is what a real "image pushed outside CI" incident looks like from
-the verifier's side.
- 
-![GHCR: verified digest next to the manual-push tag](evidence/screenshots/02-ghcr-verified-vs-unverified.png)
- 
-## Attack 2: forge the provenance JSON
- 
-Pulled the real provenance:
- 
+
+No provenance was ever attached to that digest, so there is nothing to verify.
+This is what "image pushed outside CI" looks like from the verifier's side.
+Always verify by digest: tags are mutable and can be re-pointed by anyone with
+write access.
+
+![GHCR package versions](evidence/screenshots/02-ghcr-verified-vs-unverified.png)
+
+### E3–E4: forged provenance passed via `--provenance-path`
+
+I downloaded the real provenance:
+
 ```bash
 cosign download attestation "${IMAGE}@${DIGEST}" \
   | jq -r '.payload' | base64 -d | jq '.' > evidence/json/real-provenance.json
 ```
- 
 ![downloading the attestation](evidence/screenshots/06-download-attestation.png)
- 
+
 ```bash
 jq '{
   subject: .subject,
@@ -157,16 +192,12 @@ jq '{
   source: .predicate.invocation.configSource
 }' evidence/json/real-provenance.json
 ```
- 
+
 ![subject, builder, source fields](evidence/screenshots/07-provenance-fields.png)
- 
-Edited `source.uri` and `source.digest.sha1` to point at a fake attacker repo,
-kept everything else identical:
- 
-```bash
-diff evidence/json/real-provenance.json evidence/json/forged-provenance.json
-```
- 
+
+I then changed `source.uri` and `source.digest.sha1` to point at a fake
+repository and left everything else untouched:
+
 ```diff
 <         "uri": "git+https://github.com/cbrkrtek/slsa-provenance-lab@refs/heads/main",
 ---
@@ -175,52 +206,104 @@ diff evidence/json/real-provenance.json evidence/json/forged-provenance.json
 ---
 >           "sha1": "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 ```
- 
+
 ![two-line diff](evidence/screenshots/08-provenance-diff.png)
- 
-Expected outcome: feed this to `slsa-verifier` via `--provenance-path`, get
-rejected because the DSSE signature no longer matches the payload.
- 
+
+Note that I edited the *decoded payload*. The original DSSE envelope and
+signature were not re-created, so this file is not a valid envelope at all. It
+is a plain JSON statement.
+
+**Hypothesis going in:** the verifier would read this file, notice that the
+signature does not match, and reject it.
+
 ```bash
 slsa-verifier verify-image "${IMAGE}@${DIGEST}" \
   --source-uri github.com/cbrkrtek/slsa-provenance-lab \
   --provenance-path evidence/json/forged-provenance.json
 ```
- 
+
 ```
 PASSED: Verified SLSA provenance
 ```
- 
-Not what I expected. Before writing this up as a bypass, I ran a control test -
-swapped the forged file for `/dev/null`:
- 
+
+Control: the same command with `/dev/null`.
+
 ```bash
 slsa-verifier verify-image "${IMAGE}@${DIGEST}" \
   --source-uri github.com/cbrkrtek/slsa-provenance-lab \
   --provenance-path /dev/null
 ```
- 
+
 ```
 PASSED: Verified SLSA provenance
 ```
+
+![forged file PASSED](evidence/screenshots/09-provenance-path-ignored-forged.png)
+
+![/dev/null PASSED](evidence/screenshots/10-provenance-path-ignored-control.png)
+
+
+### What can and cannot be concluded
+
+
+**Observed.** In E3 and E4, with this verifier version, this image and this
+command, changing the content of the file passed to `--provenance-path` (forged
+JSON vs. empty file) did not change the output. The printed builder and commit
+match the *real* build, not my forged values.
+
+**Interpretation (not proven).** The simplest reading is that the verdict was
+produced from the attestation stored in the registry and not from my local
+file. That means:
  
-Same result.
+- I did **not** bypass verification: the forged content was not what got
+  verified.
+- I did **not** test whether the signature check detects tampered content. That
+  test would require getting a modified attestation into the place the verifier
+  actually reads from (the registry), which is a different and harder
+  experiment.
+
+
+**Not claimed.** I do not claim that `--provenance-path` is a no-op in general.
+I tested one path (GitHub Actions / `slsa-github-generator`), and I did not
+check the documentation for the scenarios the flag is intended for. The
+behaviour I saw could be correct for this path and simply surprising.
+
+
+### Hypotheses: why did the file not matter?
+
+I did not investigate the cause. These are the candidate explanations, not
+findings:
  
-![forged file and /dev/null both PASSED](evidence/screenshots/09-provenance-path-ignored-forged.png)
-![control test on /dev/null](evidence/screenshots/10-provenance-path-ignored-control.png)
+- **H1.** The flag is not read at all for `verify-image` on this path.
+- **H2.** The flag is read but does not influence the verdict.
+- **H3.** The flag is used, and my experiment was incomplete (for example, it
+  may need a valid, signed envelope rather than decoded JSON).
+Ways to tell them apart, none of which I have done: read the `verify-image`
+implementation in the `slsa-verifier` repository; check the issue tracker for an
+existing report; pass a nonexistent path and a non-JSON file and see whether the
+tool complains; pass an untouched, undecoded envelope from
+`cosign download attestation`.
  
-**What's actually going on:** `--provenance-path` doesn't override anything for
-`verify-image`. The command always fetches and checks whatever's cryptographically
-attached to that digest in the registry - the local file argument gets ignored
-entirely. I went in expecting a signature mismatch to catch the forgery. What
-actually happens is one layer earlier: there's no code path for a local file to
-substitute for the registry-attested provenance when verifying a container image
-at all. If you want to actually test the signature check, you'd have to attach a
-different, real, signed attestation to that digest in the registry - a
-meaningfully different (and harder) experiment than editing a JSON file on disk.
- 
-Rekor entry for the legit build, found by digest:
- 
+If the cause turns out to be H1 or H2, the issue is one of usability: a flag
+that is accepted but has no effect on the verdict can mislead users into
+believing they verified a local file. That would belong in an issue or a
+documentation fix. A real security discrepancy should go through the project's
+private reporting process, not a public write-up.
+
+## What I did not do
+
+- Negative controls with a wrong `--source-uri`, a wrong `--source-branch`, or a
+  forged file combined with a wrong `--source-uri`. Without them I can't fully
+  rule out a stand that is more permissive than I assume.
+- Read the verifier's source or search its issue tracker.
+- Record the verifier version and run date.
+- Test `--provenance-path` with any builder other than
+  `slsa-github-generator`.
+- Test whether the signature check detects a tampered attestation that is
+  actually stored in the registry.
+
+### Rekor entry
+
 ```bash
 rekor-cli search --sha 1c70c20db0f36b09dd0954a096050631fe3c41fa3f33e27443b4469a75a478da
 ```
@@ -229,20 +312,40 @@ rekor-cli search --sha 1c70c20db0f36b09dd0954a096050631fe3c41fa3f33e27443b4469a7
 Found matching entries (listed by UUID):
 108e9186e8c5677ad7a17a74a009d6b79592942feae0e683c4f685928957b137f31ba1a0b949b22d
 ```
- 
+
 ![rekor-cli search result](evidence/screenshots/11-rekor-search-uuid.png)
+ 
+This shows that the transparency log has an entry associated with that digest.
+To confirm what the entry contains, run
+`rekor-cli get --uuid <UUID> --format json`.
  
 ## Signing vs provenance
  
-| | Cosign | SLSA provenance |
+| | Cosign signature | SLSA provenance (verified with `slsa-verifier`) |
 |---|---|---|
-| Proves | Not altered since signing | Built from this commit, by this exact CI |
-| Checks source/commit | Not by default | Yes, explicitly |
-| Checks builder identity | Readable from the cert, not enforced | Enforced via `--source-uri`/`--source-branch` |
-| If the build job itself is compromised | No protection | Provenance generation runs in an isolated job, outside the build job's reach |
-| Can a local file override verification | n/a | No, confirmed above - always checks the registry |
+| Answers | Has this been modified since it was signed, and by which identity? | Which builder produced it, from which source, and with which entry point? |
+| Source / commit | Not part of a plain signature | Recorded in the provenance; checked against the flags you pass (`--source-uri`, `--source-branch`, …) |
+| Builder identity | Readable from the certificate; enforced only if you set strict identity flags | Verified against the builder identified in the provenance; trusted builders are checked by the tool |
+| If the *build* job is compromised | The signature may still be valid | Provenance is still produced honestly by the isolated job; the *image* may be malicious |
+| Local file overriding verification (`verify-image`) | n/a | Not observed in E3/E4; cause not established |
  
+## What SLSA provenance does and does not guarantee
  
+**It supports claims such as:**
+ 
+- The artifact with this digest was produced by this builder workflow.
+- It was built from this repository, ref and commit.
+- The provenance was signed under the builder's identity and is recorded in a
+  public transparency log.
+**It does not tell you:**
+ 
+- That the source code is free of vulnerabilities or backdoors.
+- That the dependencies pulled at build time are trustworthy.
+- That the build job's *outputs* weren't tampered with before they reached the
+  provenance job (see "Limit of this guarantee" above).
+- That anything is safe to run. `PASSED` means "the provenance matches what you
+  asked for", and your `--source-uri` / `--source-branch` flags define what
+  you asked for.
 ## Reproducing
  
 ```bash
@@ -250,4 +353,3 @@ git clone https://github.com/cbrkrtek/slsa-provenance-lab
 cd slsa-provenance-lab/verification
 ./verify-legit.sh <git-sha-tag>
 ```
- 
